@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Main where
 
 import Test.QuickCheck
@@ -16,7 +18,7 @@ addBeforeLast x ys = init ys ++ [x] ++ [last ys]
 addBeforeLast2 :: a -> [a] -> [a]
 addBeforeLast2 _ [] = []
 addBeforeLast2 x [a] = [x,a]
-addBeforeLast2 x (a:as) = a: addBeforeLast2 x as
+addBeforeLast2 x (a:as) = a : addBeforeLast2 x as
 
 prop :: Eq a => a -> [a] -> Bool
 prop x xs = addBeforeLast x xs == addBeforeLast2 x xs
@@ -27,9 +29,9 @@ runIntTest = quickCheck (prop :: Int -> [Int] -> Bool)
 runBoolTest :: IO ()
 runBoolTest = quickCheck (prop :: Bool -> [Bool] -> Bool)
 
-----------------------
--- Custom data type --
-----------------------
+-------------------------
+-- Custom product type --
+-------------------------
 
 data Person = Person
   { name :: String
@@ -53,3 +55,29 @@ buggyId p@(Person name age) = if length name == age then Person "" 0 else p
 
 runIdTest :: IO ()
 runIdTest = quickCheck $ forAll genPerson (\p -> buggyId p == p)
+
+---------------------
+-- Custom sum type --
+---------------------
+
+data Tree a = Leaf a | Branch (Tree a) a (Tree a) deriving Show
+
+sumProp :: Eq a => Tree a -> Bool
+sumProp = undefined
+
+generateTrees :: IO ()
+generateTrees = sample (arbitrary :: Gen (Tree Int))
+
+instance (Arbitrary a) => Arbitrary (Tree a) where
+  arbitrary = do
+    n <- choose (1,2) :: Gen Int
+    case n of
+      1 -> Leaf <$> arbitrary
+      2 -> do
+        left :: Tree a <- arbitrary
+        a <- arbitrary
+        right :: Tree a <- arbitrary
+        return $ Branch left a right
+
+runSumTest :: IO ()
+runSumTest = quickCheck (sumProp :: Tree Int -> Bool)
